@@ -43,6 +43,11 @@ import {
 import { resolveAwsSdkEnvVarName, resolveEnvApiKey } from "./model-auth.js";
 import { OLLAMA_NATIVE_BASE_URL } from "./ollama-stream.js";
 import {
+  discoverSiliconFlowModels,
+  SILICONFLOW_GLOBAL_BASE_URL,
+  SILICONFLOW_CN_BASE_URL,
+} from "./siliconflow-models.js";
+import {
   buildSyntheticModelDefinition,
   SYNTHETIC_BASE_URL,
   SYNTHETIC_MODEL_CATALOG,
@@ -181,6 +186,28 @@ export const QIANFAN_DEFAULT_MODEL_ID = "deepseek-v3.2";
 const QIANFAN_DEFAULT_CONTEXT_WINDOW = 98304;
 const QIANFAN_DEFAULT_MAX_TOKENS = 32768;
 const QIANFAN_DEFAULT_COST = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+};
+
+export const QWEN_WEB_BASE_URL = "https://www.qianwen.com";
+export const QWEN_WEB_DEFAULT_MODEL_ID = "Qwen3.5-Plus";
+const QWEN_WEB_DEFAULT_CONTEXT_WINDOW = 128000;
+const QWEN_WEB_DEFAULT_MAX_TOKENS = 4096;
+const QWEN_WEB_DEFAULT_COST = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+};
+
+export const DEEPSEEK_WEB_BASE_URL = "https://chat.deepseek.com";
+export const DEEPSEEK_WEB_DEFAULT_MODEL_ID = "deepseek-chat";
+const DEEPSEEK_WEB_DEFAULT_CONTEXT_WINDOW = 64000;
+const DEEPSEEK_WEB_DEFAULT_MAX_TOKENS = 8192;
+const DEEPSEEK_WEB_DEFAULT_COST = {
   input: 0,
   output: 0,
   cacheRead: 0,
@@ -496,13 +523,6 @@ export function normalizeProviders(params: {
 
   for (const [key, provider] of Object.entries(providers)) {
     const normalizedKey = key.trim();
-    if (!normalizedKey) {
-      mutated = true;
-      continue;
-    }
-    if (normalizedKey !== key) {
-      mutated = true;
-    }
     let normalizedProvider = provider;
     const configuredApiKey = normalizedProvider.apiKey;
 
@@ -561,19 +581,7 @@ export function normalizeProviders(params: {
       normalizedProvider = antigravityNormalized;
     }
 
-    const existing = next[normalizedKey];
-    if (existing) {
-      // Keep deterministic behavior if users accidentally define duplicate
-      // provider keys that only differ by surrounding whitespace.
-      mutated = true;
-      next[normalizedKey] = {
-        ...existing,
-        ...normalizedProvider,
-        models: normalizedProvider.models ?? existing.models,
-      };
-      continue;
-    }
-    next[normalizedKey] = normalizedProvider;
+    next[key] = normalizedProvider;
   }
 
   return mutated ? next : providers;
@@ -868,6 +876,143 @@ export function buildQianfanProvider(): ProviderConfig {
   };
 }
 
+export async function discoverDeepseekWebModels(params?: {
+  apiKey?: string;
+}): Promise<ModelDefinitionConfig[]> {
+  if (params?.apiKey) {
+    try {
+      const auth = JSON.parse(params.apiKey);
+      const { DeepSeekWebClient } = await import("../providers/deepseek-web-client.js");
+      const client = new DeepSeekWebClient(auth);
+      return await client.discoverModels();
+    } catch (e) {
+      console.warn("[DeepSeekWeb] Dynamic discovery failed, falling back to built-in list:", e);
+    }
+  }
+
+  return [
+    {
+      id: "deepseek-chat",
+      name: "DeepSeek V3 (Web)",
+      reasoning: false,
+      input: ["text"],
+      cost: DEEPSEEK_WEB_DEFAULT_COST,
+      contextWindow: DEEPSEEK_WEB_DEFAULT_CONTEXT_WINDOW,
+      maxTokens: DEEPSEEK_WEB_DEFAULT_MAX_TOKENS,
+    },
+    {
+      id: "deepseek-reasoner",
+      name: "DeepSeek R1 (Web)",
+      reasoning: true,
+      input: ["text"],
+      cost: DEEPSEEK_WEB_DEFAULT_COST,
+      contextWindow: DEEPSEEK_WEB_DEFAULT_CONTEXT_WINDOW,
+      maxTokens: DEEPSEEK_WEB_DEFAULT_MAX_TOKENS,
+    },
+    {
+      id: "deepseek-chat-search",
+      name: "DeepSeek V3 (Web + Search)",
+      reasoning: false,
+      input: ["text"],
+      cost: DEEPSEEK_WEB_DEFAULT_COST,
+      contextWindow: DEEPSEEK_WEB_DEFAULT_CONTEXT_WINDOW,
+      maxTokens: DEEPSEEK_WEB_DEFAULT_MAX_TOKENS,
+    },
+    {
+      id: "deepseek-reasoner-search",
+      name: "DeepSeek R1 (Web + Search)",
+      reasoning: true,
+      input: ["text"],
+      cost: DEEPSEEK_WEB_DEFAULT_COST,
+      contextWindow: DEEPSEEK_WEB_DEFAULT_CONTEXT_WINDOW,
+      maxTokens: DEEPSEEK_WEB_DEFAULT_MAX_TOKENS,
+    },
+  ];
+}
+
+export async function buildDeepseekWebProvider(params?: {
+  apiKey?: string;
+}): Promise<ProviderConfig> {
+  const models = await discoverDeepseekWebModels(params);
+  return {
+    baseUrl: DEEPSEEK_WEB_BASE_URL,
+    api: "deepseek-web",
+    models,
+  };
+}
+
+export async function discoverQwenWebModels(params?: {
+  apiKey?: string;
+}): Promise<ModelDefinitionConfig[]> {
+  if (params?.apiKey) {
+    try {
+      const auth = JSON.parse(params.apiKey);
+      const { QwenWebClient } = await import("../providers/qwen-web-client.js");
+      const client = new QwenWebClient(auth);
+      return await client.discoverModels();
+    } catch (e) {
+      console.warn("[QwenWeb] Dynamic discovery failed, falling back to built-in list:", e);
+    }
+  }
+
+  return [
+    {
+      id: "Qwen3.5-Plus",
+      name: "Qwen 3.5 Plus (Web)",
+      reasoning: false,
+      input: ["text"],
+      cost: QWEN_WEB_DEFAULT_COST,
+      contextWindow: QWEN_WEB_DEFAULT_CONTEXT_WINDOW,
+      maxTokens: QWEN_WEB_DEFAULT_MAX_TOKENS,
+    },
+    {
+      id: "Qwen3.5-Plus-Thinking",
+      name: "Qwen 3.5 Plus Thinking (Web)",
+      reasoning: true,
+      input: ["text"],
+      cost: QWEN_WEB_DEFAULT_COST,
+      contextWindow: QWEN_WEB_DEFAULT_CONTEXT_WINDOW,
+      maxTokens: QWEN_WEB_DEFAULT_MAX_TOKENS,
+    },
+    {
+      id: "Qwen-Deep-Research",
+      name: "Qwen Deep Research (Web)",
+      reasoning: true,
+      input: ["text"],
+      cost: QWEN_WEB_DEFAULT_COST,
+      contextWindow: QWEN_WEB_DEFAULT_CONTEXT_WINDOW,
+      maxTokens: QWEN_WEB_DEFAULT_MAX_TOKENS,
+    },
+    {
+      id: "Qwen-Code-Agent",
+      name: "Qwen Code Assistant (Web)",
+      reasoning: false,
+      input: ["text"],
+      cost: QWEN_WEB_DEFAULT_COST,
+      contextWindow: QWEN_WEB_DEFAULT_CONTEXT_WINDOW,
+      maxTokens: QWEN_WEB_DEFAULT_MAX_TOKENS,
+    },
+    {
+      id: "Qwen-Image-Gen",
+      name: "Qwen Image Generation (Web)",
+      reasoning: false,
+      input: ["text"],
+      cost: QWEN_WEB_DEFAULT_COST,
+      contextWindow: QWEN_WEB_DEFAULT_CONTEXT_WINDOW,
+      maxTokens: QWEN_WEB_DEFAULT_MAX_TOKENS,
+    },
+  ];
+}
+
+export async function buildQwenWebProvider(params?: { apiKey?: string }): Promise<ProviderConfig> {
+  const models = await discoverQwenWebModels(params);
+  return {
+    baseUrl: QWEN_WEB_BASE_URL,
+    api: "qwen-web",
+    models,
+  };
+}
+
 export function buildNvidiaProvider(): ProviderConfig {
   return {
     baseUrl: NVIDIA_BASE_URL,
@@ -1129,13 +1274,73 @@ export async function resolveImplicitProviders(params: {
     providers.nvidia = { ...buildNvidiaProvider(), apiKey: nvidiaKey };
   }
 
+  const siliconFlowGlobalVar = resolveEnvApiKeyVarName("siliconflow");
+  const siliconFlowGlobalProfileKey = resolveApiKeyFromProfiles({
+    provider: "siliconflow",
+    store: authStore,
+  });
+  const siliconFlowGlobalKey = siliconFlowGlobalVar ?? siliconFlowGlobalProfileKey;
+  if (siliconFlowGlobalKey) {
+    const discoveryApiKey = siliconFlowGlobalVar
+      ? (process.env[siliconFlowGlobalVar]?.trim() ?? "")
+      : (siliconFlowGlobalProfileKey ?? "");
+
+    providers.siliconflow = {
+      baseUrl: SILICONFLOW_GLOBAL_BASE_URL,
+      api: "openai-completions",
+      apiKey: siliconFlowGlobalKey,
+      models: await discoverSiliconFlowModels({
+        baseUrl: SILICONFLOW_GLOBAL_BASE_URL,
+        apiKey: discoveryApiKey,
+      }),
+    };
+  }
+
+  const siliconFlowCnVar = resolveEnvApiKeyVarName("siliconflow-cn");
+  const siliconFlowCnProfileKey = resolveApiKeyFromProfiles({
+    provider: "siliconflow-cn",
+    store: authStore,
+  });
+  const siliconFlowCnKey = siliconFlowCnVar ?? siliconFlowCnProfileKey;
+  if (siliconFlowCnKey) {
+    const discoveryApiKey = siliconFlowCnVar
+      ? (process.env[siliconFlowCnVar]?.trim() ?? "")
+      : (siliconFlowCnProfileKey ?? "");
+
+    providers["siliconflow-cn"] = {
+      baseUrl: SILICONFLOW_CN_BASE_URL,
+      api: "openai-completions",
+      apiKey: siliconFlowCnKey,
+      models: await discoverSiliconFlowModels({
+        baseUrl: SILICONFLOW_CN_BASE_URL,
+        apiKey: discoveryApiKey,
+      }),
+    };
+  }
+  const deepseekWebKey =
+    resolveEnvApiKeyVarName("deepseek-web") ??
+    resolveApiKeyFromProfiles({ provider: "deepseek-web", store: authStore });
+
+  providers["deepseek-web"] = {
+    ...(await buildDeepseekWebProvider({ apiKey: deepseekWebKey })),
+    apiKey: deepseekWebKey,
+  };
+
+  const qwenWebKey =
+    resolveEnvApiKeyVarName("qwen-web") ??
+    resolveApiKeyFromProfiles({ provider: "qwen-web", store: authStore });
+
+  providers["qwen-web"] = {
+    ...(await buildQwenWebProvider({ apiKey: qwenWebKey })),
+    apiKey: qwenWebKey,
+  };
+
   const kilocodeKey =
     resolveEnvApiKeyVarName("kilocode") ??
     resolveApiKeyFromProfiles({ provider: "kilocode", store: authStore });
   if (kilocodeKey) {
     providers.kilocode = { ...buildKilocodeProvider(), apiKey: kilocodeKey };
   }
-
   return providers;
 }
 
