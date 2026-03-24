@@ -14,8 +14,6 @@ export type AgentStreamParams = {
   /** Provider stream params override (best-effort). */
   temperature?: number;
   maxTokens?: number;
-  /** Whether web search is enabled for this run (best-effort). */
-  webSearchEnabled?: boolean;
 };
 
 export type AgentRunContext = {
@@ -82,8 +80,4 @@ export type AgentCommandOpts = {
   inputProvenance?: InputProvenance;
   /** Per-call stream param overrides (best-effort). */
   streamParams?: AgentStreamParams;
-  /** Explicit list of tools to grant to the agent. */
-  toolsOverride?: string[];
-  /** Explicit list of skills to grant to the agent. */
-  skillsOverride?: string[];
 };
