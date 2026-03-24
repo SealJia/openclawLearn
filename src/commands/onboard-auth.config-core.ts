@@ -4,10 +4,14 @@ import {
   HUGGINGFACE_MODEL_CATALOG,
 } from "../agents/huggingface-models.js";
 import {
+  buildDeepseekWebProvider,
+  buildQwenWebProvider,
   buildKilocodeProvider,
   buildKimiCodingProvider,
   buildQianfanProvider,
   buildXiaomiProvider,
+  DEEPSEEK_WEB_DEFAULT_MODEL_ID,
+  QWEN_WEB_DEFAULT_MODEL_ID,
   QIANFAN_DEFAULT_MODEL_ID,
   XIAOMI_DEFAULT_MODEL_ID,
 } from "../agents/models-config.providers.js";
@@ -40,6 +44,8 @@ import {
   XIAOMI_DEFAULT_MODEL_REF,
   ZAI_DEFAULT_MODEL_REF,
   XAI_DEFAULT_MODEL_REF,
+  DEEPSEEK_WEB_DEFAULT_MODEL_REF,
+  QWEN_WEB_DEFAULT_MODEL_REF,
 } from "./onboard-auth.credentials.js";
 export {
   applyCloudflareAiGatewayConfig,
@@ -79,6 +85,12 @@ import {
   resolveZaiBaseUrl,
   XAI_BASE_URL,
   XAI_DEFAULT_MODEL_ID,
+  SILICONFLOW_GLOBAL_BASE_URL,
+  SILICONFLOW_CN_BASE_URL,
+  SILICONFLOW_DEFAULT_MODEL_ID,
+  SILICONFLOW_GLOBAL_DEFAULT_MODEL_REF,
+  SILICONFLOW_CN_DEFAULT_MODEL_REF,
+  buildSiliconFlowModelDefinition,
 } from "./onboard-auth.models.js";
 
 export function applyZaiProviderConfig(
@@ -572,4 +584,100 @@ export function applyQianfanProviderConfig(cfg: OpenClawConfig): OpenClawConfig 
 export function applyQianfanConfig(cfg: OpenClawConfig): OpenClawConfig {
   const next = applyQianfanProviderConfig(cfg);
   return applyAgentDefaultModelPrimary(next, QIANFAN_DEFAULT_MODEL_REF);
+}
+
+export function applySiliconFlowGlobalProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
+  const models = { ...cfg.agents?.defaults?.models };
+  models[SILICONFLOW_GLOBAL_DEFAULT_MODEL_REF] = {
+    ...models[SILICONFLOW_GLOBAL_DEFAULT_MODEL_REF],
+    alias: models[SILICONFLOW_GLOBAL_DEFAULT_MODEL_REF]?.alias ?? "DeepSeek V3 (Intl)",
+  };
+
+  const defaultModel = buildSiliconFlowModelDefinition({
+    id: SILICONFLOW_DEFAULT_MODEL_ID,
+  });
+
+  return applyProviderConfigWithDefaultModel(cfg, {
+    agentModels: models,
+    providerId: "siliconflow",
+    api: "openai-completions",
+    baseUrl: SILICONFLOW_GLOBAL_BASE_URL,
+    defaultModel,
+    defaultModelId: SILICONFLOW_DEFAULT_MODEL_ID,
+  });
+}
+
+export function applySiliconFlowCnProviderConfig(cfg: OpenClawConfig): OpenClawConfig {
+  const models = { ...cfg.agents?.defaults?.models };
+  models[SILICONFLOW_CN_DEFAULT_MODEL_REF] = {
+    ...models[SILICONFLOW_CN_DEFAULT_MODEL_REF],
+    alias: models[SILICONFLOW_CN_DEFAULT_MODEL_REF]?.alias ?? "DeepSeek V3 (CN)",
+  };
+
+  const defaultModel = buildSiliconFlowModelDefinition({
+    id: SILICONFLOW_DEFAULT_MODEL_ID,
+  });
+
+  return applyProviderConfigWithDefaultModel(cfg, {
+    agentModels: models,
+    providerId: "siliconflow-cn",
+    api: "openai-completions",
+    baseUrl: SILICONFLOW_CN_BASE_URL,
+    defaultModel,
+    defaultModelId: SILICONFLOW_DEFAULT_MODEL_ID,
+  });
+}
+
+export function applySiliconFlowGlobalConfig(cfg: OpenClawConfig): OpenClawConfig {
+  const next = applySiliconFlowGlobalProviderConfig(cfg);
+  return applyAgentDefaultModelPrimary(next, SILICONFLOW_GLOBAL_DEFAULT_MODEL_REF);
+}
+
+export function applySiliconFlowCnConfig(cfg: OpenClawConfig): OpenClawConfig {
+  const next = applySiliconFlowCnProviderConfig(cfg);
+  return applyAgentDefaultModelPrimary(next, SILICONFLOW_CN_DEFAULT_MODEL_REF);
+}
+
+export async function applyDeepseekWebProviderConfig(cfg: OpenClawConfig): Promise<OpenClawConfig> {
+  const models = { ...cfg.agents?.defaults?.models };
+  models[DEEPSEEK_WEB_DEFAULT_MODEL_REF] = {
+    ...models[DEEPSEEK_WEB_DEFAULT_MODEL_REF],
+    alias: models[DEEPSEEK_WEB_DEFAULT_MODEL_REF]?.alias ?? "DeepSeek Browser",
+  };
+  const defaultProvider = await buildDeepseekWebProvider();
+  return applyProviderConfigWithDefaultModels(cfg, {
+    agentModels: models,
+    providerId: "deepseek-web",
+    api: "deepseek-web",
+    baseUrl: defaultProvider.baseUrl,
+    defaultModels: defaultProvider.models ?? [],
+    defaultModelId: DEEPSEEK_WEB_DEFAULT_MODEL_ID,
+  });
+}
+
+export async function applyDeepseekWebConfig(cfg: OpenClawConfig): Promise<OpenClawConfig> {
+  const next = await applyDeepseekWebProviderConfig(cfg);
+  return applyAgentDefaultModelPrimary(next, DEEPSEEK_WEB_DEFAULT_MODEL_REF);
+}
+
+export async function applyQwenWebProviderConfig(cfg: OpenClawConfig): Promise<OpenClawConfig> {
+  const models = { ...cfg.agents?.defaults?.models };
+  models[QWEN_WEB_DEFAULT_MODEL_REF] = {
+    ...models[QWEN_WEB_DEFAULT_MODEL_REF],
+    alias: models[QWEN_WEB_DEFAULT_MODEL_REF]?.alias ?? "Qwen Browser",
+  };
+  const defaultProvider = await buildQwenWebProvider();
+  return applyProviderConfigWithDefaultModels(cfg, {
+    agentModels: models,
+    providerId: "qwen-web",
+    api: "qwen-web",
+    baseUrl: defaultProvider.baseUrl,
+    defaultModels: defaultProvider.models ?? [],
+    defaultModelId: QWEN_WEB_DEFAULT_MODEL_ID,
+  });
+}
+
+export async function applyQwenWebConfig(cfg: OpenClawConfig): Promise<OpenClawConfig> {
+  const next = await applyQwenWebProviderConfig(cfg);
+  return applyAgentDefaultModelPrimary(next, QWEN_WEB_DEFAULT_MODEL_REF);
 }
