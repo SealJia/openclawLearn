@@ -5,12 +5,14 @@ import { applyAuthChoiceAnthropic } from "./auth-choice.apply.anthropic.js";
 import { applyAuthChoiceApiProviders } from "./auth-choice.apply.api-providers.js";
 import { applyAuthChoiceBytePlus } from "./auth-choice.apply.byteplus.js";
 import { applyAuthChoiceCopilotProxy } from "./auth-choice.apply.copilot-proxy.js";
+import { applyAuthChoiceDeepseekWeb } from "./auth-choice.apply.deepseek-web.js";
 import { applyAuthChoiceGitHubCopilot } from "./auth-choice.apply.github-copilot.js";
 import { applyAuthChoiceGoogleGeminiCli } from "./auth-choice.apply.google-gemini-cli.js";
 import { applyAuthChoiceMiniMax } from "./auth-choice.apply.minimax.js";
 import { applyAuthChoiceOAuth } from "./auth-choice.apply.oauth.js";
 import { applyAuthChoiceOpenAI } from "./auth-choice.apply.openai.js";
 import { applyAuthChoiceQwenPortal } from "./auth-choice.apply.qwen-portal.js";
+import { applyAuthChoiceQwenWeb } from "./auth-choice.apply.qwen-web.js";
 import { applyAuthChoiceVllm } from "./auth-choice.apply.vllm.js";
 import { applyAuthChoiceVolcengine } from "./auth-choice.apply.volcengine.js";
 import { applyAuthChoiceXAI } from "./auth-choice.apply.xai.js";
@@ -46,6 +48,8 @@ export async function applyAuthChoice(
     applyAuthChoiceGoogleGeminiCli,
     applyAuthChoiceCopilotProxy,
     applyAuthChoiceQwenPortal,
+    applyAuthChoiceDeepseekWeb,
+    applyAuthChoiceQwenWeb,
     applyAuthChoiceXAI,
     applyAuthChoiceVolcengine,
     applyAuthChoiceBytePlus,
