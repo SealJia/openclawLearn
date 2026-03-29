@@ -57,6 +57,7 @@ import type { CronFieldErrors } from "./controllers/cron.ts";
 import type { DevicePairingList } from "./controllers/devices.ts";
 import type { ExecApprovalRequest } from "./controllers/exec-approval.ts";
 import type { ExecApprovalsFile, ExecApprovalsSnapshot } from "./controllers/exec-approvals.ts";
+import { loadSandboxTaskPlan } from "./controllers/sandbox.ts";
 import type { SkillMessage } from "./controllers/skills.ts";
 import type { GatewayBrowserClient, GatewayHelloOk } from "./gateway.ts";
 import type { Tab } from "./navigation.ts";
@@ -66,6 +67,8 @@ import type {
   AgentsListResult,
   AgentsFilesListResult,
   AgentIdentityResult,
+  AgentsMemoryListResult,
+  AgentsMemoryStatusResult,
   ConfigSnapshot,
   ConfigUiHints,
   CronJob,
@@ -143,8 +146,10 @@ export class OpenClawApp extends LitElement {
   @state() chatMessages: unknown[] = [];
   @state() chatToolMessages: unknown[] = [];
   @state() chatStream: string | null = null;
+  @state() chatStreamThinking: string | null = null;
   @state() chatStreamStartedAt: number | null = null;
   @state() chatRunId: string | null = null;
+  @state() sandboxChatEvents: Record<string, unknown> = {};
   @state() compactionStatus: CompactionStatus | null = null;
   @state() fallbackStatus: FallbackStatus | null = null;
   @state() chatAvatarUrl: string | null = null;
@@ -152,6 +157,7 @@ export class OpenClawApp extends LitElement {
   @state() chatQueue: ChatQueueItem[] = [];
   @state() chatAttachments: ChatAttachment[] = [];
   @state() chatManualRefreshInFlight = false;
+  @state() chatWebSearchEnabled = this.settings.chatWebSearchEnabled ?? true;
   // Sidebar state for tool output viewing
   @state() sidebarOpen = false;
   @state() sidebarContent: string | null = null;
@@ -237,6 +243,23 @@ export class OpenClawApp extends LitElement {
   @state() agentSkillsError: string | null = null;
   @state() agentSkillsReport: SkillStatusReport | null = null;
   @state() agentSkillsAgentId: string | null = null;
+
+  @state() agentKnowledgeLoading = false;
+  @state() agentKnowledgeError: string | null = null;
+  @state() agentKnowledgeList: AgentsMemoryListResult | null = null;
+  @state() agentKnowledgeStatus: AgentsMemoryStatusResult | null = null;
+  @state() agentKnowledgeFileContents: Record<string, string> = {};
+  @state() agentKnowledgeFileDrafts: Record<string, string> = {};
+  @state() agentKnowledgeFileActive: string | null = null;
+  @state() agentKnowledgeSaving = false;
+
+  // Sandbox / Deep Agents task plan state
+  @state() sandboxTaskPlan: import("./views/sandbox.js").TaskPlanSnapshot | null = null;
+  @state() sandboxTaskPlanLoading = false;
+  @state() sandboxTaskPlanError: string | null = null;
+  /** Suppresses automatic task-plan re-fetches; default true to avoid showing stale data on load. Lifted when user sends a real message. */
+  sandboxTaskPlanSuppressed = true;
+  sandboxPollTimer: ReturnType<typeof setInterval> | null = null;
 
   @state() sessionsLoading = false;
   @state() sessionsResult: SessionsListResult | null = null;
@@ -613,6 +636,11 @@ export class OpenClawApp extends LitElement {
     const newRatio = Math.max(0.4, Math.min(0.7, ratio));
     this.splitRatio = newRatio;
     this.applySettings({ ...this.settings, splitRatio: newRatio });
+  }
+
+  handleToggleWebSearch(enabled: boolean) {
+    this.chatWebSearchEnabled = enabled;
+    this.applySettings({ ...this.settings, chatWebSearchEnabled: enabled });
   }
 
   render() {

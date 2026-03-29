@@ -21,6 +21,7 @@ export type ChatHost = {
   basePath: string;
   hello: GatewayHelloOk | null;
   chatAvatarUrl: string | null;
+  chatWebSearchEnabled: boolean;
   refreshSessionsAfterChat: Set<string>;
 };
 
@@ -104,7 +105,16 @@ async function sendChatMessageNow(
   },
 ) {
   resetToolStream(host as unknown as Parameters<typeof resetToolStream>[0]);
-  const runId = await sendChatMessage(host as unknown as OpenClawApp, message, opts?.attachments);
+  // Lift the task-plan suppression flag for real user messages (not /new responses)
+  if (!opts?.refreshSessions) {
+    const s = host as unknown as Record<string, unknown>;
+    if (s.sandboxTaskPlanSuppressed) {
+      s.sandboxTaskPlanSuppressed = false;
+    }
+  }
+  const runId = await sendChatMessage(host as unknown as OpenClawApp, message, opts?.attachments, {
+    webSearchEnabled: host.chatWebSearchEnabled,
+  });
   const ok = Boolean(runId);
   if (!ok && opts?.previousDraft != null) {
     host.chatMessage = opts.previousDraft;
@@ -181,6 +191,22 @@ export async function handleSendChat(
   }
 
   const refreshSessions = isChatResetCommand(message);
+  if (refreshSessions) {
+    const s = host as unknown as import("./app-view-state.ts").AppViewState;
+    s.sandboxTaskPlan = null;
+    s.sandboxTaskPlanLoading = false;
+    s.sandboxTaskPlanError = null;
+    (s as unknown as { sandboxTaskPlanSuppressed: boolean }).sandboxTaskPlanSuppressed = true;
+    s.sandboxChatEvents = {};
+    s.chatMessages = [];
+    s.chatToolMessages = [];
+    s.chatStream = null;
+    s.chatStreamThinking = null;
+    s.sidebarOpen = false;
+    s.sidebarContent = null;
+    s.sidebarError = null;
+  }
+
   if (messageOverride == null) {
     host.chatMessage = "";
     // Clear attachments when sending
@@ -210,7 +236,7 @@ export async function refreshChat(host: ChatHost, opts?: { scheduleScroll?: bool
     }),
     refreshChatAvatar(host),
   ]);
-  if (opts?.scheduleScroll !== false) {
+  if (opts?.scheduleScroll) {
     scheduleChatScroll(host as unknown as Parameters<typeof scheduleChatScroll>[0]);
   }
 }

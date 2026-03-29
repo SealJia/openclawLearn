@@ -37,9 +37,9 @@ struct SkillsSettings: View {
     private var header: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Skills")
+                Text("技能 (Skills)")
                     .font(.headline)
-                Text("Skills are enabled when requirements are met (binaries, env, config).")
+                Text("当满足环境要求（依赖程序、环境变量、配置项）时，技能才可启用。")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -50,7 +50,7 @@ struct SkillsSettings: View {
                 Button {
                     Task { await self.model.refresh() }
                 } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
+                    Label("强制加载刷新", systemImage: "arrow.clockwise")
                 }
                 .buttonStyle(.bordered)
                 .help("Refresh")
@@ -75,7 +75,7 @@ struct SkillsSettings: View {
     @ViewBuilder
     private var skillsList: some View {
         if self.model.skills.isEmpty {
-            Text("No skills reported yet.")
+            Text("无已加载技能插件。")
                 .foregroundStyle(.secondary)
         } else {
             List {
@@ -99,7 +99,7 @@ struct SkillsSettings: View {
                         })
                 }
                 if !self.model.skills.isEmpty, self.filteredSkills.isEmpty {
-                    Text("No skills match this filter.")
+                    Text("没有匹配的技能。")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -109,7 +109,7 @@ struct SkillsSettings: View {
     }
 
     private var headerFilter: some View {
-        Picker("Filter", selection: self.$filter) {
+        Picker("筛选", selection: self.$filter) {
             ForEach(SkillsFilter.allCases) { filter in
                 Text(filter.title)
                     .tag(filter)
@@ -149,13 +149,13 @@ private enum SkillsFilter: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .all:
-            "All"
+            "全部 (All)"
         case .ready:
-            "Ready"
+            "已就绪 (Ready)"
         case .needsSetup:
-            "Needs Setup"
+            "需要配置 (Needs Setup)"
         case .disabled:
-            "Disabled"
+            "已禁用 (Disabled)"
         }
     }
 }
@@ -200,7 +200,7 @@ private struct SkillRow: View {
                 self.metaRow
 
                 if self.skill.disabled {
-                    Text("Disabled in config")
+                    Text("配置中已禁用")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else if !self.requirementsMet, self.shouldShowMissingSummary {
@@ -226,15 +226,15 @@ private struct SkillRow: View {
     private var sourceLabel: String {
         switch self.skill.source {
         case "openclaw-bundled":
-            "Bundled"
+            "内置 (Bundled)"
         case "openclaw-managed":
-            "Managed"
+            "托管 (Managed)"
         case "openclaw-workspace":
-            "Workspace"
+            "工作区 (Workspace)"
         case "openclaw-extra":
-            "Extra"
+            "额外 (Extra)"
         case "openclaw-plugin":
-            "Plugin"
+            "插件 (Plugin)"
         default:
             self.skill.source
         }
@@ -245,7 +245,7 @@ private struct SkillRow: View {
             SkillTag(text: self.sourceLabel)
             if let url = self.homepageUrl {
                 Link(destination: url) {
-                    Label("Website", systemImage: "link")
+                    Label("官网", systemImage: "link")
                         .font(.caption2.weight(.semibold))
                 }
                 .buttonStyle(.link)
@@ -271,17 +271,17 @@ private struct SkillRow: View {
     private var missingSummary: some View {
         VStack(alignment: .leading, spacing: 4) {
             if self.shouldShowMissingBins {
-                Text("Missing binaries: \(self.missingBins.joined(separator: ", "))")
+                Text("缺失依赖程序: \(self.missingBins.joined(separator: ", "))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             if !self.missingEnv.isEmpty {
-                Text("Missing env: \(self.missingEnv.joined(separator: ", "))")
+                Text("缺失环境变量: \(self.missingEnv.joined(separator: ", "))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             if !self.missingConfig.isEmpty {
-                Text("Requires config: \(self.missingConfig.joined(separator: ", "))")
+                Text("需要配置: \(self.missingConfig.joined(separator: ", "))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -308,7 +308,7 @@ private struct SkillRow: View {
         HStack(spacing: 8) {
             ForEach(self.missingEnv, id: \.self) { envKey in
                 let isPrimary = envKey == self.skill.primaryEnv
-                Button(isPrimary ? "Set API Key" : "Set \(envKey)") {
+                Button(isPrimary ? "设置 API 密钥" : "设置 \(envKey)") {
                     self.onSetEnv(envKey, isPrimary)
                 }
                 .buttonStyle(.bordered)
@@ -324,25 +324,25 @@ private struct SkillRow: View {
                 ForEach(self.installOptions, id: \.id) { (option: SkillInstallOption) in
                     HStack(spacing: 6) {
                         if self.showGatewayInstall {
-                            Button("Install on Gateway") { self.onInstall(option, .gateway) }
+                            Button("在网关安装") { self.onInstall(option, .gateway) }
                                 .buttonStyle(.borderedProminent)
                                 .disabled(self.isBusy)
                         }
                         if self.showGatewayInstall {
-                            Button("Install on This Mac") { self.onInstall(option, .local) }
+                            Button("在这台 Mac 安装") { self.onInstall(option, .local) }
                                 .buttonStyle(.bordered)
                                 .disabled(self.isBusy)
                                 .help(
                                     self.localInstallNeedsSwitch
-                                        ? "Switches to Local mode to install on this Mac."
+                                        ? "将切换到本地模式以在此 Mac 上安装。"
                                         : "")
                         } else {
-                            Button("Install on This Mac") { self.onInstall(option, .local) }
+                            Button("在这台 Mac 安装") { self.onInstall(option, .local) }
                                 .buttonStyle(.borderedProminent)
                                 .disabled(self.isBusy)
                                 .help(
                                     self.localInstallNeedsSwitch
-                                        ? "Switches to Local mode to install on this Mac."
+                                        ? "将切换到本地模式以在此 Mac 上安装。"
                                         : "")
                         }
                     }
@@ -450,9 +450,9 @@ private struct EnvEditorView: View {
             SecureField(self.editor.envKey, text: self.$value)
                 .textFieldStyle(.roundedBorder)
             HStack {
-                Button("Cancel") { self.dismiss() }
+                Button("取消") { self.dismiss() }
                 Spacer()
-                Button("Save") {
+                Button("保存 (Save)") {
                     self.onSave(self.value)
                     self.dismiss()
                 }
@@ -465,11 +465,11 @@ private struct EnvEditorView: View {
     }
 
     private var title: String {
-        self.editor.isPrimary ? "Set API Key" : "Set Environment Variable"
+        self.editor.isPrimary ? "设置 API 密钥" : "设置环境变量"
     }
 
     private var subtitle: String {
-        "Skill: \(self.editor.skillName)"
+        "技能: \(self.editor.skillName)"
     }
 }
 

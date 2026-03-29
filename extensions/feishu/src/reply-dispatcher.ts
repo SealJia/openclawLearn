@@ -22,20 +22,6 @@ function shouldUseCard(text: string): boolean {
   return /```[\s\S]*?```/.test(text) || /\|.+\|[\r\n]+\|[-:| ]+\|/.test(text);
 }
 
-/** Maximum age (ms) for a message to receive a typing indicator reaction.
- * Messages older than this are likely replays after context compaction (#30418). */
-const TYPING_INDICATOR_MAX_AGE_MS = 2 * 60_000;
-const MS_EPOCH_MIN = 1_000_000_000_000;
-
-function normalizeEpochMs(timestamp: number | undefined): number | undefined {
-  if (!Number.isFinite(timestamp) || timestamp === undefined || timestamp <= 0) {
-    return undefined;
-  }
-  // Defensive normalization: some payloads use seconds, others milliseconds.
-  // Values below 1e12 are treated as epoch-seconds.
-  return timestamp < MS_EPOCH_MIN ? timestamp * 1000 : timestamp;
-}
-
 export type CreateFeishuReplyDispatcherParams = {
   cfg: ClawdbotConfig;
   agentId: string;
@@ -48,9 +34,6 @@ export type CreateFeishuReplyDispatcherParams = {
   rootId?: string;
   mentionTargets?: MentionTarget[];
   accountId?: string;
-  /** Epoch ms when the inbound message was created. Used to suppress typing
-   *  indicators on old/replayed messages after context compaction (#30418). */
-  messageCreateTimeMs?: number;
 };
 
 export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherParams) {
@@ -78,15 +61,6 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
         return;
       }
       if (!replyToMessageId) {
-        return;
-      }
-      // Skip typing indicator for old messages — likely replays after context
-      // compaction that would flood users with stale notifications (#30418).
-      const messageCreateTimeMs = normalizeEpochMs(params.messageCreateTimeMs);
-      if (
-        messageCreateTimeMs !== undefined &&
-        Date.now() - messageCreateTimeMs > TYPING_INDICATOR_MAX_AGE_MS
-      ) {
         return;
       }
       typingState = await addTypingIndicator({
@@ -297,10 +271,12 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
         typingCallbacks.onIdle?.();
       },
       onIdle: async () => {
+        params.runtime.log?.(`feishu[${account.accountId}]: reply idle`);
         await closeStreaming();
         typingCallbacks.onIdle?.();
       },
       onCleanup: () => {
+        params.runtime.log?.(`feishu[${account.accountId}]: reply cleanup`);
         typingCallbacks.onCleanup?.();
       },
     });
@@ -310,11 +286,33 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
     replyOptions: {
       ...replyOptions,
       onModelSelected: prefixContext.onModelSelected,
+      onReasoningStream: async (payload: ReplyPayload) => {
+        if (!streamingEnabled || !payload.text) {
+          return;
+        }
+        params.runtime.log?.(
+          `feishu[${account.accountId}]: reasoning stream received (${payload.text.length} chars)`,
+        );
+        // For reasoning stream, we typically want to show it on the card
+        // but not necessarily update streamText if it's separate from content
+        startStreaming();
+        if (streamingStartPromise) {
+          await streamingStartPromise;
+        }
+        if (streaming?.isActive()) {
+          // If the model provides delta reasoning, we append it to a "Thinking" section
+          // For now, just trigger an update to show activity
+          await streaming.update(`⏳ ${payload.text}`);
+        }
+      },
       onPartialReply: streamingEnabled
         ? (payload: ReplyPayload) => {
             if (!payload.text || payload.text === lastPartial) {
               return;
             }
+            params.runtime.log?.(
+              `feishu[${account.accountId}]: partial reply received (${payload.text.length} chars)`,
+            );
             lastPartial = payload.text;
             streamText = payload.text;
             partialUpdateQueue = partialUpdateQueue.then(async () => {

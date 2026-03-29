@@ -62,12 +62,6 @@ function resolveSessionKeyChannelHint(sessionKey?: string): string | undefined {
   return normalizeMessageChannel(head);
 }
 
-function isExternalRoutingChannel(channel?: string): channel is string {
-  return Boolean(
-    channel && channel !== INTERNAL_MESSAGE_CHANNEL && isDeliverableMessageChannel(channel),
-  );
-}
-
 function resolveLastChannelRaw(params: {
   originatingChannelRaw?: string;
   persistedLastChannel?: string;
@@ -77,42 +71,24 @@ function resolveLastChannelRaw(params: {
   const persistedChannel = normalizeMessageChannel(params.persistedLastChannel);
   const sessionKeyChannelHint = resolveSessionKeyChannelHint(params.sessionKey);
   let resolved = params.originatingChannelRaw || params.persistedLastChannel;
-  // Internal/non-deliverable sources should not overwrite previously known
-  // external delivery routes (or explicit channel hints from the session key).
-  if (!isExternalRoutingChannel(originatingChannel)) {
-    if (isExternalRoutingChannel(persistedChannel)) {
+  // Internal webchat/system turns should not overwrite previously known external
+  // delivery routes (or explicit channel hints encoded in the session key).
+  if (originatingChannel === INTERNAL_MESSAGE_CHANNEL) {
+    if (
+      persistedChannel &&
+      persistedChannel !== INTERNAL_MESSAGE_CHANNEL &&
+      isDeliverableMessageChannel(persistedChannel)
+    ) {
       resolved = persistedChannel;
-    } else if (isExternalRoutingChannel(sessionKeyChannelHint)) {
+    } else if (
+      sessionKeyChannelHint &&
+      sessionKeyChannelHint !== INTERNAL_MESSAGE_CHANNEL &&
+      isDeliverableMessageChannel(sessionKeyChannelHint)
+    ) {
       resolved = sessionKeyChannelHint;
     }
   }
   return resolved;
-}
-
-function resolveLastToRaw(params: {
-  originatingChannelRaw?: string;
-  originatingToRaw?: string;
-  toRaw?: string;
-  persistedLastTo?: string;
-  persistedLastChannel?: string;
-  sessionKey?: string;
-}): string | undefined {
-  const originatingChannel = normalizeMessageChannel(params.originatingChannelRaw);
-  const persistedChannel = normalizeMessageChannel(params.persistedLastChannel);
-  const sessionKeyChannelHint = resolveSessionKeyChannelHint(params.sessionKey);
-
-  // When the turn originates from an internal/non-deliverable source, do not
-  // replace an established external destination with internal routing ids
-  // (e.g., session/webchat ids).
-  if (!isExternalRoutingChannel(originatingChannel)) {
-    const hasExternalFallback =
-      isExternalRoutingChannel(persistedChannel) || isExternalRoutingChannel(sessionKeyChannelHint);
-    if (hasExternalFallback && params.persistedLastTo) {
-      return params.persistedLastTo;
-    }
-  }
-
-  return params.originatingToRaw || params.toRaw || params.persistedLastTo;
 }
 
 export type SessionInitResult = {
@@ -446,14 +422,7 @@ export async function initSessionState(params: {
     persistedLastChannel: baseEntry?.lastChannel,
     sessionKey,
   });
-  const lastToRaw = resolveLastToRaw({
-    originatingChannelRaw,
-    originatingToRaw: ctx.OriginatingTo,
-    toRaw: ctx.To,
-    persistedLastTo: baseEntry?.lastTo,
-    persistedLastChannel: baseEntry?.lastChannel,
-    sessionKey,
-  });
+  const lastToRaw = ctx.OriginatingTo || ctx.To || baseEntry?.lastTo;
   const lastAccountIdRaw = ctx.AccountId || baseEntry?.lastAccountId;
   // Only fall back to persisted threadId for thread sessions.  Non-thread
   // sessions (e.g. DM without topics) must not inherit a stale threadId from a

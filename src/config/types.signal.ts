@@ -48,6 +48,4 @@ export type SignalAccountConfig = CommonChannelMessagingConfig & {
 export type SignalConfig = {
   /** Optional per-account Signal configuration (multi-account). */
   accounts?: Record<string, SignalAccountConfig>;
-  /** Optional default account id when multiple accounts are configured. */
-  defaultAccount?: string;
 } & SignalAccountConfig;

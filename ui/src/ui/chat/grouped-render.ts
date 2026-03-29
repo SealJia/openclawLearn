@@ -6,13 +6,10 @@ import { openExternalUrlSafe } from "../open-external-url.ts";
 import { detectTextDirection } from "../text-direction.ts";
 import type { MessageGroup } from "../types/chat-types.ts";
 import { renderCopyAsMarkdownButton } from "./copy-as-markdown.ts";
-import {
-  extractTextCached,
-  extractThinkingCached,
-  formatReasoningMarkdown,
-} from "./message-extract.ts";
+import { extractTextCached, extractThinkingCached } from "./message-extract.ts";
 import { isToolResultMessage, normalizeRoleForGrouping } from "./message-normalizer.ts";
 import { extractToolCards, renderToolCardSidebar } from "./tool-cards.ts";
+import "../components/chat-thinking.ts";
 
 type ImageBlock = {
   url: string;
@@ -76,6 +73,8 @@ export function renderStreamingGroup(
   startedAt: number,
   onOpenSidebar?: (content: string) => void,
   assistant?: AssistantIdentity,
+  thinking?: string,
+  showReasoning?: boolean,
 ) {
   const timestamp = new Date(startedAt).toLocaleTimeString([], {
     hour: "numeric",
@@ -90,10 +89,13 @@ export function renderStreamingGroup(
         ${renderGroupedMessage(
           {
             role: "assistant",
-            content: [{ type: "text", text }],
+            content: [
+              ...(thinking?.trim() ? [{ type: "thinking", thinking }] : []),
+              ...(text?.trim() ? [{ type: "text", text }] : []),
+            ],
             timestamp: startedAt,
           },
-          { isStreaming: true, showReasoning: false },
+          { isStreaming: true, showReasoning: Boolean(showReasoning) },
           onOpenSidebar,
         )}
         <div class="chat-group-footer">
@@ -244,7 +246,6 @@ function renderGroupedMessage(
   const extractedThinking =
     opts.showReasoning && role === "assistant" ? extractThinkingCached(message) : null;
   const markdownBase = extractedText?.trim() ? extractedText : null;
-  const reasoningMarkdown = extractedThinking ? formatReasoningMarkdown(extractedThinking) : null;
   const markdown = markdownBase;
   const canCopyMarkdown = role === "assistant" && Boolean(markdown?.trim());
 
@@ -252,7 +253,7 @@ function renderGroupedMessage(
     "chat-bubble",
     canCopyMarkdown ? "has-copy" : "",
     opts.isStreaming ? "streaming" : "",
-    "fade-in",
+    "chat-bubble--anim-enter", // New class for animation
   ]
     .filter(Boolean)
     .join(" ");
@@ -267,13 +268,11 @@ function renderGroupedMessage(
 
   return html`
     <div class="${bubbleClasses}">
-      ${canCopyMarkdown ? renderCopyAsMarkdownButton(markdown!) : nothing}
+      ${canCopyMarkdown ? renderCopyAsMarkdownButton(markdown) : nothing}
       ${renderMessageImages(images)}
       ${
-        reasoningMarkdown
-          ? html`<div class="chat-thinking">${unsafeHTML(
-              toSanitizedMarkdownHtml(reasoningMarkdown),
-            )}</div>`
+        extractedThinking && opts.showReasoning
+          ? html`<chat-thinking .content=${extractedThinking} .isStreaming=${opts.isStreaming}></chat-thinking>`
           : nothing
       }
       ${

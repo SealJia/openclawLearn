@@ -104,8 +104,8 @@ const AUTH_CHOICE_GROUP_DEFS: {
   {
     value: "qwen",
     label: "Qwen",
-    hint: "OAuth",
-    choices: ["qwen-portal"],
+    hint: "OAuth + Browser/Cookies",
+    choices: ["qwen-portal", "qwen-web"],
   },
   {
     value: "zai",
@@ -184,6 +184,24 @@ const AUTH_CHOICE_GROUP_DEFS: {
     label: "Custom Provider",
     hint: "Any OpenAI or Anthropic compatible endpoint",
     choices: ["custom-api-key"],
+  },
+  {
+    value: "siliconflow-global",
+    label: "SiliconFlow (International)",
+    hint: "DeepSeek, Qwen, Llama (API key)",
+    choices: ["siliconflow-global-api-key"],
+  },
+  {
+    value: "siliconflow-cn",
+    label: "SiliconFlow (China)",
+    hint: "DeepSeek, Qwen, Llama (API key)",
+    choices: ["siliconflow-cn-api-key"],
+  },
+  {
+    value: "deepseek-web",
+    label: "DeepSeek Browser",
+    hint: "Uses cookies (V3/R1 thinking)",
+    choices: ["deepseek-web"],
   },
 ];
 
@@ -296,6 +314,26 @@ const BASE_AUTH_CHOICE_OPTIONS: ReadonlyArray<AuthChoiceOption> = [
     value: "minimax-api-lightning",
     label: "MiniMax M2.5 Lightning",
     hint: "Faster, higher output cost",
+  },
+  {
+    value: "siliconflow-global-api-key",
+    label: "SiliconFlow (International)",
+    hint: "deepseek-ai/DeepSeek-V3",
+  },
+  {
+    value: "siliconflow-cn-api-key",
+    label: "SiliconFlow (China)",
+    hint: "deepseek-ai/DeepSeek-V3",
+  },
+  {
+    value: "deepseek-web",
+    label: "DeepSeek Browser (Cookie auth)",
+    hint: "Access DeepSeek V3/R1 via logged-in session",
+  },
+  {
+    value: "qwen-web",
+    label: "Qwen Browser (Cookie auth)",
+    hint: "Access Qwen 3.5 via logged-in session",
   },
   { value: "custom-api-key", label: "Custom Provider" },
 ];

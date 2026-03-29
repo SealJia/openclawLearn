@@ -518,9 +518,6 @@ function mapThinkingLevelToOpenRouterReasoningEffort(
   if (thinkingLevel === "off") {
     return "none";
   }
-  if (thinkingLevel === "adaptive") {
-    return "medium";
-  }
   return thinkingLevel;
 }
 
@@ -634,7 +631,6 @@ function mapThinkLevelToGoogleThinkingLevel(
     case "low":
       return "LOW";
     case "medium":
-    case "adaptive":
       return "MEDIUM";
     case "high":
     case "xhigh":
@@ -831,8 +827,24 @@ export function applyExtraParamsToAgent(
   // upstream model-ID heuristics for Gemini 3.1 variants.
   agent.streamFn = createGoogleThinkingPayloadWrapper(agent.streamFn, thinkingLevel);
 
-  // Work around upstream pi-ai hardcoding `store: false` for Responses API.
   // Force `store=true` for direct OpenAI Responses models and auto-enable
   // server-side compaction for compatible OpenAI Responses payloads.
   agent.streamFn = createOpenAIResponsesContextManagementWrapper(agent.streamFn, merged);
+
+  // Auto-detect searchEnabled for DeepSeek Web models based on ID suffix if not explicitly set.
+  if (
+    provider === "deepseek-web" &&
+    modelId.includes("-search") &&
+    merged.searchEnabled === undefined
+  ) {
+    log.debug(`auto-enabling search for ${provider}/${modelId}`);
+    const nextWrapped = createStreamFnWithExtraParams(
+      agent.streamFn,
+      { searchEnabled: true },
+      provider,
+    );
+    if (nextWrapped) {
+      agent.streamFn = nextWrapped;
+    }
+  }
 }

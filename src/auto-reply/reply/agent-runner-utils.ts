@@ -3,6 +3,7 @@ import type { NormalizedUsage } from "../../agents/usage.js";
 import { getChannelDock } from "../../channels/dock.js";
 import type { ChannelId, ChannelThreadingToolContext } from "../../channels/plugins/types.js";
 import { normalizeAnyChannelId, normalizeChannelId } from "../../channels/registry.js";
+import type { AgentStreamParams } from "../../commands/agent/types.js";
 import type { OpenClawConfig } from "../../config/config.js";
 import { isReasoningTagProvider } from "../../utils/provider-utils.js";
 import { estimateUsageCost, formatTokenCount, formatUsd } from "../../utils/usage-format.js";
@@ -10,6 +11,23 @@ import type { TemplateContext } from "../templating.js";
 import type { ReplyPayload } from "../types.js";
 import { resolveOriginMessageProvider, resolveOriginMessageTo } from "./origin-routing.js";
 import type { FollowupRun } from "./queue.js";
+
+export function buildStreamParams(params: {
+  modelOptions?: Record<string, unknown>;
+  base?: AgentStreamParams;
+}): AgentStreamParams | undefined {
+  const { modelOptions, base } = params;
+  if (!modelOptions && !base) {
+    return undefined;
+  }
+  const result: AgentStreamParams = { ...base };
+  if (modelOptions) {
+    if (typeof modelOptions.webSearchEnabled === "boolean") {
+      result.webSearchEnabled = modelOptions.webSearchEnabled;
+    }
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
+}
 
 const BUN_FETCH_SOCKET_ERROR_RE = /socket connection was closed unexpectedly/i;
 

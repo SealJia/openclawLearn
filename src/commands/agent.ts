@@ -328,6 +328,7 @@ function runAgentAttempt(params: {
     extraSystemPrompt: params.opts.extraSystemPrompt,
     inputProvenance: params.opts.inputProvenance,
     streamParams: params.opts.streamParams,
+    toolsOverride: params.opts.toolsOverride,
     agentDir: params.agentDir,
     onAgentEvent: params.onAgentEvent,
   });
@@ -588,7 +589,11 @@ export async function agentCommand(
       });
     }
 
-    let resolvedThinkLevel = thinkOnce ?? thinkOverride ?? persistedThinking;
+    let resolvedThinkLevel =
+      thinkOnce ??
+      thinkOverride ??
+      persistedThinking ??
+      (agentCfg?.thinkingDefault as ThinkLevel | undefined);
     const resolvedVerboseLevel =
       verboseOverride ?? persistedVerbose ?? (agentCfg?.verboseDefault as VerboseLevel | undefined);
 
@@ -601,7 +606,8 @@ export async function agentCommand(
 
     const needsSkillsSnapshot = isNewSession || !sessionEntry?.skillsSnapshot;
     const skillsSnapshotVersion = getSkillsSnapshotVersion(workspaceDir);
-    const skillFilter = resolveAgentSkillsFilter(cfg, sessionAgentId);
+    const baseSkillFilter = resolveAgentSkillsFilter(cfg, sessionAgentId);
+    const skillFilter = opts.skillsOverride ?? baseSkillFilter;
     const skillsSnapshot = needsSkillsSnapshot
       ? buildWorkspaceSkillSnapshot(workspaceDir, {
           config: cfg,

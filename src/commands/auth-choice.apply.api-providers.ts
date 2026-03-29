@@ -49,6 +49,10 @@ import {
   applyXiaomiProviderConfig,
   applyZaiConfig,
   applyZaiProviderConfig,
+  applySiliconFlowGlobalConfig,
+  applySiliconFlowGlobalProviderConfig,
+  applySiliconFlowCnConfig,
+  applySiliconFlowCnProviderConfig,
   CLOUDFLARE_AI_GATEWAY_DEFAULT_MODEL_REF,
   KILOCODE_DEFAULT_MODEL_REF,
   LITELLM_DEFAULT_MODEL_REF,
@@ -76,7 +80,11 @@ import {
   setVercelAiGatewayApiKey,
   setXiaomiApiKey,
   setZaiApiKey,
+  setSiliconFlowGlobalApiKey,
+  setSiliconFlowCnApiKey,
   ZAI_DEFAULT_MODEL_REF,
+  SILICONFLOW_GLOBAL_DEFAULT_MODEL_REF,
+  SILICONFLOW_CN_DEFAULT_MODEL_REF,
 } from "./onboard-auth.js";
 import type { AuthChoice, SecretInputMode } from "./onboard-types.js";
 import { OPENCODE_ZEN_DEFAULT_MODEL } from "./opencode-zen-model-default.js";
@@ -101,6 +109,8 @@ const API_KEY_TOKEN_PROVIDER_AUTH_CHOICE: Record<string, AuthChoice> = {
   opencode: "opencode-zen",
   kilocode: "kilocode-api-key",
   qianfan: "qianfan-api-key",
+  siliconflow: "siliconflow-global-api-key",
+  "siliconflow-cn": "siliconflow-cn-api-key",
 };
 
 const ZAI_AUTH_CHOICE_ENDPOINT: Partial<
@@ -308,6 +318,40 @@ const SIMPLE_API_KEY_PROVIDER_FLOWS: Partial<Record<AuthChoice, SimpleApiKeyProv
     applyProviderConfig: applySyntheticProviderConfig,
     normalize: (value) => String(value ?? "").trim(),
     validate: (value) => (String(value ?? "").trim() ? undefined : "Required"),
+  },
+  "siliconflow-global-api-key": {
+    provider: "siliconflow",
+    profileId: "siliconflow:default",
+    expectedProviders: ["siliconflow"],
+    envLabel: "SILICONFLOW_API_KEY",
+    promptMessage: "Enter SiliconFlow Global API key (Intl)",
+    setCredential: setSiliconFlowGlobalApiKey,
+    defaultModel: SILICONFLOW_GLOBAL_DEFAULT_MODEL_REF,
+    applyDefaultConfig: applySiliconFlowGlobalConfig,
+    applyProviderConfig: applySiliconFlowGlobalProviderConfig,
+    noteDefault: SILICONFLOW_GLOBAL_DEFAULT_MODEL_REF,
+    noteMessage: [
+      "DeepSeek-V3/R1 and other models via SiliconFlow.",
+      "Get your API key at: https://cloud.siliconflow.com/account/ak",
+    ].join("\n"),
+    noteTitle: "SiliconFlow Global",
+  },
+  "siliconflow-cn-api-key": {
+    provider: "siliconflow-cn",
+    profileId: "siliconflow-cn:default",
+    expectedProviders: ["siliconflow-cn"],
+    envLabel: "SILICONFLOW_API_KEY_CN",
+    promptMessage: "Enter SiliconFlow China API key (CN)",
+    setCredential: setSiliconFlowCnApiKey,
+    defaultModel: SILICONFLOW_CN_DEFAULT_MODEL_REF,
+    applyDefaultConfig: applySiliconFlowCnConfig,
+    applyProviderConfig: applySiliconFlowCnProviderConfig,
+    noteDefault: SILICONFLOW_CN_DEFAULT_MODEL_REF,
+    noteMessage: [
+      "DeepSeek-V3/R1 and other models via SiliconFlow China.",
+      "Get your API key at: https://cloud.siliconflow.cn/account/ak",
+    ].join("\n"),
+    noteTitle: "SiliconFlow China",
   },
 };
 

@@ -322,6 +322,10 @@ export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
     qianfan: "QIANFAN_API_KEY",
     ollama: "OLLAMA_API_KEY",
     vllm: "VLLM_API_KEY",
+    siliconflow: "SILICONFLOW_API_KEY",
+    "siliconflow-cn": "SILICONFLOW_CN_API_KEY",
+    "deepseek-web": "DEEPSEEK_WEB_COOKIE",
+    "qwen-web": "QWEN_WEB_COOKIE",
     kilocode: "KILOCODE_API_KEY",
   };
   const envVar = envMap[normalized];

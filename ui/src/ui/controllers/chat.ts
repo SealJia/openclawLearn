@@ -15,6 +15,7 @@ export type ChatState = {
   chatAttachments: ChatAttachment[];
   chatRunId: string | null;
   chatStream: string | null;
+  chatStreamThinking: string | null;
   chatStreamStartedAt: number | null;
   lastError: string | null;
 };
@@ -111,6 +112,7 @@ export async function sendChatMessage(
   state: ChatState,
   message: string,
   attachments?: ChatAttachment[],
+  modelOptions?: Record<string, unknown>,
 ): Promise<string | null> {
   if (!state.client || !state.connected) {
     return null;
@@ -152,6 +154,7 @@ export async function sendChatMessage(
   const runId = generateUUID();
   state.chatRunId = runId;
   state.chatStream = "";
+  state.chatStreamThinking = "";
   state.chatStreamStartedAt = now;
 
   // Convert attachments to API format
@@ -178,12 +181,14 @@ export async function sendChatMessage(
       deliver: false,
       idempotencyKey: runId,
       attachments: apiAttachments,
+      modelOptions,
     });
     return runId;
   } catch (err) {
     const error = String(err);
     state.chatRunId = null;
     state.chatStream = null;
+    state.chatStreamThinking = null;
     state.chatStreamStartedAt = null;
     state.lastError = error;
     state.chatMessages = [
@@ -247,12 +252,25 @@ export function handleChatEvent(state: ChatState, payload?: ChatEventPayload) {
         state.chatStream = next;
       }
     }
+    // Also extract thinking deltas specifically
+    const m = payload.message as Record<string, unknown>;
+    if (Array.isArray(m.content)) {
+      const thinkingParts = m.content
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .filter((p: any) => p.type === "thinking" && typeof p.thinking === "string")
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .map((p: any) => p.thinking);
+      if (thinkingParts.length > 0) {
+        state.chatStreamThinking = thinkingParts.join("\n");
+      }
+    }
   } else if (payload.state === "final") {
     const finalMessage = normalizeFinalAssistantMessage(payload.message);
     if (finalMessage) {
       state.chatMessages = [...state.chatMessages, finalMessage];
     }
     state.chatStream = null;
+    state.chatStreamThinking = null;
     state.chatRunId = null;
     state.chatStreamStartedAt = null;
   } else if (payload.state === "aborted") {
@@ -261,22 +279,33 @@ export function handleChatEvent(state: ChatState, payload?: ChatEventPayload) {
       state.chatMessages = [...state.chatMessages, normalizedMessage];
     } else {
       const streamedText = state.chatStream ?? "";
-      if (streamedText.trim()) {
+      const streamedThinking = state.chatStreamThinking ?? "";
+      if (streamedText.trim() || streamedThinking.trim()) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const content: any[] = [];
+        if (streamedThinking.trim()) {
+          content.push({ type: "thinking", thinking: streamedThinking });
+        }
+        if (streamedText.trim()) {
+          content.push({ type: "text", text: streamedText });
+        }
         state.chatMessages = [
           ...state.chatMessages,
           {
             role: "assistant",
-            content: [{ type: "text", text: streamedText }],
+            content,
             timestamp: Date.now(),
           },
         ];
       }
     }
     state.chatStream = null;
+    state.chatStreamThinking = null;
     state.chatRunId = null;
     state.chatStreamStartedAt = null;
   } else if (payload.state === "error") {
     state.chatStream = null;
+    state.chatStreamThinking = null;
     state.chatRunId = null;
     state.chatStreamStartedAt = null;
     state.lastError = payload.errorMessage ?? "chat error";

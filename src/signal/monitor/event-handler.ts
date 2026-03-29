@@ -438,11 +438,9 @@ export function createSignalEventHandler(deps: SignalEventHandlerDeps) {
       return;
     }
 
-    // Filter all sync messages (sentTranscript, readReceipts, etc.).
-    // signal-cli may set syncMessage to null instead of omitting it, so
-    // check property existence rather than truthiness to avoid replaying
-    // the bot's own sent messages on daemon restart.
-    if ("syncMessage" in envelope) {
+    // For non-own sync messages (e.g., messages synced from other devices),
+    // we could process them but for now we skip to be conservative
+    if (envelope.syncMessage) {
       return;
     }
 

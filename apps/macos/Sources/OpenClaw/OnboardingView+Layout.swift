@@ -88,7 +88,7 @@ extension OnboardingView {
         return HStack(spacing: 20) {
             ZStack(alignment: .leading) {
                 Button(action: {}, label: {
-                    Label("Back", systemImage: "chevron.left").labelStyle(.iconOnly)
+                    Label("返回", systemImage: "chevron.left").labelStyle(.iconOnly)
                 })
                 .buttonStyle(.plain)
                 .opacity(0)
@@ -96,7 +96,7 @@ extension OnboardingView {
 
                 if self.currentPage > 0 {
                     Button(action: self.handleBack, label: {
-                        Label("Back", systemImage: "chevron.left")
+                        Label("返回", systemImage: "chevron.left")
                             .labelStyle(.iconOnly)
                     })
                     .buttonStyle(.plain)

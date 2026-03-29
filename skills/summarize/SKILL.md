@@ -17,6 +17,13 @@ metadata:
               "bins": ["summarize"],
               "label": "Install summarize (brew)",
             },
+            {
+              "id": "node",
+              "kind": "node",
+              "package": "@steipete/summarize",
+              "bins": ["summarize"],
+              "label": "Install summarize (node)",
+            },
           ],
       },
   }

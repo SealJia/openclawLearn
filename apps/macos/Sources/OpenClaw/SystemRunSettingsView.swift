@@ -10,10 +10,10 @@ struct SystemRunSettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center, spacing: 12) {
-                Text("Exec approvals")
+                Text("代码审批")
                     .font(.body)
                 Spacer(minLength: 0)
-                Picker("Agent", selection: Binding(
+                Picker("智能体(Agent)", selection: Binding(
                     get: { self.model.selectedAgentId },
                     set: { self.model.selectAgent($0) }))
                 {
@@ -74,7 +74,7 @@ struct SystemRunSettingsView: View {
                 set: { self.model.setAskFallback($0) }))
             {
                 ForEach(ExecSecurity.allCases) { mode in
-                    Text("Fallback: \(mode.title)").tag(mode)
+                    Text("降级至: \(mode.title)").tag(mode)
                 }
             }
             .labelsHidden()
@@ -89,7 +89,7 @@ struct SystemRunSettingsView: View {
 
     private var allowlistView: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Toggle("Auto-allow skill CLIs", isOn: Binding(
+            Toggle("自动允许技能 CLI 工具", isOn: Binding(
                 get: { self.model.autoAllowSkills },
                 set: { self.model.setAutoAllowSkills($0) }))
 
@@ -100,14 +100,14 @@ struct SystemRunSettingsView: View {
             }
 
             if self.model.isDefaultsScope {
-                Text("Allowlists are per-agent. Select an agent to edit its allowlist.")
+                Text("白名单是按智能体设置的。请选择智能体编辑。")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
                 HStack(spacing: 8) {
-                    TextField("Add allowlist path pattern (case-insensitive globs)", text: self.$newPattern)
+                    TextField("添加白名单路径模式（不区分大小写的 glob 通配符）", text: self.$newPattern)
                         .textFieldStyle(.roundedBorder)
-                    Button("Add") {
+                    Button("添加") {
                         if self.model.addEntry(self.newPattern) == nil {
                             self.newPattern = ""
                         }
@@ -116,7 +116,7 @@ struct SystemRunSettingsView: View {
                     .disabled(!self.model.isPathPattern(self.newPattern))
                 }
 
-                Text("Path patterns only. Basename entries like \"echo\" are ignored.")
+                Text("仅支持路径模式。像 \"echo\" 这样的基本名称条目将被忽略。")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                 if let validationMessage = self.model.allowlistValidationMessage {
@@ -126,7 +126,7 @@ struct SystemRunSettingsView: View {
                 }
 
                 if self.model.entries.isEmpty {
-                    Text("No allowlisted commands yet.")
+                    Text("暂无白名单命令。")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 } else {
@@ -146,11 +146,9 @@ struct SystemRunSettingsView: View {
 
     private var scopeMessage: String {
         if self.model.isDefaultsScope {
-            return "Defaults apply when an agent has no overrides. " +
-                "Ask controls prompt behavior; fallback is used when no companion UI is reachable."
+            return "当智能体没有覆盖设置时应用默认值。「询问」控制提示行为；当无法连接到配套 UI 时将使用「降级」设置。"
         }
-        return "Security controls whether system.run can execute on this Mac when paired as a node. " +
-            "Ask controls prompt behavior; fallback is used when no companion UI is reachable."
+        return "「安全性」控制当此 Mac 作为节点配对时，是否允许执行 system.run。「询问」控制提示行为；当无法连接到配套 UI 时将使用「降级」设置。"
     }
 }
 
@@ -164,8 +162,8 @@ private enum ExecApprovalsSettingsTab: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .policy: "Access"
-        case .allowlist: "Allowlist"
+        case .policy: "访问策略"
+        case .allowlist: "白名单"
         }
     }
 }
@@ -184,7 +182,7 @@ struct ExecAllowlistRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
-                TextField("Pattern", text: self.patternBinding)
+                TextField("模式", text: self.patternBinding)
                     .textFieldStyle(.roundedBorder)
 
                 Button(role: .destructive) {
@@ -197,19 +195,19 @@ struct ExecAllowlistRow: View {
 
             if let lastUsedAt = self.entry.lastUsedAt {
                 let date = Date(timeIntervalSince1970: lastUsedAt / 1000.0)
-                Text("Last used \(Self.relativeFormatter.localizedString(for: date, relativeTo: Date()))")
+                Text("最后使用时间: \(Self.relativeFormatter.localizedString(for: date, relativeTo: Date()))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
             if let lastUsedCommand = self.entry.lastUsedCommand, !lastUsedCommand.isEmpty {
-                Text("Last command: \(lastUsedCommand)")
+                Text("最近命令: \(lastUsedCommand)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
             if let lastResolvedPath = self.entry.lastResolvedPath, !lastResolvedPath.isEmpty {
-                Text("Resolved path: \(lastResolvedPath)")
+                Text("解析最终读取系统绝对寻址目标路径: \(lastResolvedPath)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

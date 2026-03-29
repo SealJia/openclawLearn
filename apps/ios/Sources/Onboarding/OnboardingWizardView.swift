@@ -121,17 +121,17 @@ struct OnboardingWizardView: View {
                         Button {
                             self.navigateBack()
                         } label: {
-                            Label("Back", systemImage: "chevron.left")
+                            Label("返回", systemImage: "chevron.left")
                         }
                     } else if self.allowSkip {
-                        Button("Close") {
+                        Button("关闭") {
                             self.onClose()
                         }
                     }
                 }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
-                    Button("Done") {
+                    Button("完成") {
                         UIApplication.shared.sendAction(
                             #selector(UIResponder.resignFirstResponder),
                             to: nil,
@@ -147,7 +147,7 @@ struct OnboardingWizardView: View {
             get: { self.scannerError != nil },
             set: { if !$0 { self.scannerError = nil } }
         )) {
-            Button("OK", role: .cancel) {}
+            Button("确定", role: .cancel) {}
         } message: {
             Text(self.scannerError ?? "")
         }
@@ -170,11 +170,11 @@ struct OnboardingWizardView: View {
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .topBarLeading) {
-                            Button("Cancel") { self.showQRScanner = false }
+                            Button("取消") { self.showQRScanner = false }
                         }
                         ToolbarItem(placement: .topBarTrailing) {
                             PhotosPicker(selection: self.$selectedPhoto, matching: .images) {
-                                Label("Photos", systemImage: "photo")
+                                Label("图库访问权限", systemImage: "photo")
                             }
                         }
                     }
@@ -307,7 +307,7 @@ struct OnboardingWizardView: View {
                 .font(.largeTitle.weight(.bold))
                 .padding(.bottom, 8)
 
-            Text("Connect to your OpenClaw gateway")
+            Text("连接到 OpenClaw 网关")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -366,8 +366,7 @@ struct OnboardingWizardView: View {
                 self.selectMode(.remoteDomain)
             }
 
-            Toggle(
-                "Developer mode",
+            Toggle("开发者模式",
                 isOn: Binding(
                     get: { self.developerModeEnabled },
                     set: { newValue in
@@ -389,7 +388,7 @@ struct OnboardingWizardView: View {
         }
 
         Section {
-            Button("Continue") {
+            Button("继续") {
                 self.step = .connect
             }
             .disabled(self.selectedMode == nil)
@@ -422,8 +421,8 @@ struct OnboardingWizardView: View {
             }
         } else {
             Section {
-                Text("Choose a mode first.")
-                Button("Back to Mode Selection") {
+                Text("请先选择一种体验模式。")
+                Button("返回模式选择") {
                     self.step = .mode
                 }
             }
@@ -434,7 +433,7 @@ struct OnboardingWizardView: View {
         Group {
             Section("Discovered Gateways") {
                 if self.gatewayController.gateways.isEmpty {
-                    Text("No gateways found yet.")
+                    Text("未找到网关。")
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(self.gatewayController.gateways) { gateway in
@@ -459,7 +458,7 @@ struct OnboardingWizardView: View {
                                 } else if !hasHost {
                                     Text("Resolving…")
                                 } else {
-                                    Text("Connect")
+                                    Text("连接")
                                 }
                             }
                             .disabled(self.connectingGatewayID != nil || !hasHost)
@@ -497,17 +496,17 @@ struct OnboardingWizardView: View {
                     HStack(spacing: 8) {
                         ProgressView()
                             .progressViewStyle(.circular)
-                        Text("Connecting…")
+                        Text("连接中…")
                     }
                 } else {
-                    Text("Connect")
+                    Text("连接")
                 }
             }
             .disabled(!self.canConnectManual || self.connectingGatewayID != nil)
         } header: {
-            Text("Developer Local")
+            Text("本地开发者")
         } footer: {
-            Text("Default host is localhost. Use your Mac LAN IP if simulator networking requires it.")
+            Text("默认主机为 localhost。")
         }
     }
 
@@ -520,11 +519,11 @@ struct OnboardingWizardView: View {
                 SecureField("Gateway Password", text: self.$gatewayPassword)
 
                 if self.issue.needsAuthToken {
-                    Text("Gateway rejected credentials. Scan a fresh QR code or update token/password.")
+                    Text("网关拒绝了凭证。请扫描新二维码或更新密码。")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 } else {
-                    Text("Auth token looks valid.")
+                    Text("Auth Token 看起来有效。")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -539,7 +538,7 @@ struct OnboardingWizardView: View {
                     }
                     .disabled(self.connectingGatewayID != nil)
                 } header: {
-                    Text("Pairing Approval")
+                    Text("局域网服务准入审批")
                 } footer: {
                     let requestLine: String = {
                         if let id = self.issue.requestId, !id.isEmpty {
@@ -588,7 +587,7 @@ struct OnboardingWizardView: View {
                 .foregroundStyle(.green)
                 .padding(.bottom, 20)
 
-            Text("Connected")
+            Text("已连接")
                 .font(.largeTitle.weight(.bold))
                 .padding(.bottom, 8)
 
@@ -609,7 +608,7 @@ struct OnboardingWizardView: View {
             Button {
                 self.onClose()
             } label: {
-                Text("Open OpenClaw")
+                Text("显示 OpenClaw 控制端")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -639,10 +638,10 @@ struct OnboardingWizardView: View {
                     HStack(spacing: 8) {
                         ProgressView()
                             .progressViewStyle(.circular)
-                        Text("Connecting…")
+                        Text("连接中…")
                     }
                 } else {
-                    Text("Connect")
+                    Text("连接")
                 }
             }
             .disabled(!self.canConnectManual || self.connectingGatewayID != nil)

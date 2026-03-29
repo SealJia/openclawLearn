@@ -15,7 +15,7 @@ import {
 } from "@agentclientprotocol/sdk";
 import { isKnownCoreToolId } from "../agents/tool-catalog.js";
 import { ensureOpenClawCliOnPath } from "../infra/path-env.js";
-import { DANGEROUS_ACP_TOOLS } from "../security/dangerous-tools.js";
+import { isDangerousAcpTool } from "../security/dangerous-tools.js";
 
 const SAFE_AUTO_APPROVE_TOOL_IDS = new Set(["read", "search", "web_search", "memory_search"]);
 const TRUSTED_SAFE_TOOL_ALIASES = new Set(["search"]);
@@ -35,6 +35,7 @@ type PermissionResolverDeps = {
   prompt?: (toolName: string | undefined, toolTitle?: string) => Promise<boolean>;
   log?: (line: string) => void;
   cwd?: string;
+  allowDangerousToolsOverride?: boolean;
 };
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
@@ -283,7 +284,10 @@ export async function resolvePermissionRequest(
   const allowOption = pickOption(options, ["allow_once", "allow_always"]);
   const rejectOption = pickOption(options, ["reject_once", "reject_always"]);
   const autoApproveAllowed = shouldAutoApproveToolCall(params, toolName, toolTitle, cwd);
-  const promptRequired = !toolName || !autoApproveAllowed || DANGEROUS_ACP_TOOLS.has(toolName);
+  const promptRequired =
+    !toolName ||
+    !autoApproveAllowed ||
+    isDangerousAcpTool(toolName, deps.allowDangerousToolsOverride);
 
   if (!promptRequired) {
     const option = allowOption ?? options[0];
@@ -319,6 +323,7 @@ export type AcpClientOptions = {
   serverArgs?: string[];
   serverVerbose?: boolean;
   verbose?: boolean;
+  allowDangerousToolsOverride?: boolean;
 };
 
 export type AcpClientHandle = {
@@ -340,12 +345,6 @@ function buildServerArgs(opts: AcpClientOptions): string[] {
     args.push("--verbose");
   }
   return args;
-}
-
-export function resolveAcpClientSpawnEnv(
-  baseEnv: NodeJS.ProcessEnv = process.env,
-): NodeJS.ProcessEnv {
-  return { ...baseEnv, OPENCLAW_SHELL: "acp-client" };
 }
 
 function resolveSelfEntryPath(): string | null {
@@ -419,7 +418,6 @@ export async function createAcpClient(opts: AcpClientOptions = {}): Promise<AcpC
   const agent = spawn(serverCommand, effectiveArgs, {
     stdio: ["pipe", "pipe", "inherit"],
     cwd,
-    env: resolveAcpClientSpawnEnv(),
   });
 
   if (!agent.stdin || !agent.stdout) {
@@ -436,7 +434,10 @@ export async function createAcpClient(opts: AcpClientOptions = {}): Promise<AcpC
         printSessionUpdate(params);
       },
       requestPermission: async (params: RequestPermissionRequest) => {
-        return resolvePermissionRequest(params, { cwd });
+        return resolvePermissionRequest(params, {
+          cwd,
+          allowDangerousToolsOverride: opts.allowDangerousToolsOverride,
+        });
       },
     }),
     stream,
