@@ -31,6 +31,11 @@ const BROWSER_TOOL_ACTIONS = [
   "pdf",
   "upload",
   "dialog",
+  "click",
+  "type",
+  "hover",
+  "fill",
+  "press",
   "act",
 ] as const;
 
