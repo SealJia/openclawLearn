@@ -9,6 +9,8 @@ export const MODEL_APIS = [
   "github-copilot",
   "bedrock-converse-stream",
   "ollama",
+  "deepseek-web",
+  "qwen-web",
 ] as const;
 
 export type ModelApi = (typeof MODEL_APIS)[number];

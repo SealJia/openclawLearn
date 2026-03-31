@@ -16,7 +16,12 @@ import { resolveSubagentSpawnModelSelection } from "./model-selection.js";
 import { resolveSandboxRuntimeStatus } from "./sandbox/runtime-status.js";
 import { buildSubagentSystemPrompt } from "./subagent-announce.js";
 import { getSubagentDepthFromSessionStore } from "./subagent-depth.js";
-import { countActiveRunsForSession, registerSubagentRun } from "./subagent-registry.js";
+import {
+  countActiveRunsForSession,
+  registerSubagentRun,
+  waitForSubagentCompletion,
+} from "./subagent-registry.js";
+import { readLatestSubagentOutput } from "./subagent-announce.js";
 import { readStringParam } from "./tools/common.js";
 import {
   resolveDisplaySessionKey,
@@ -41,6 +46,8 @@ export type SpawnSubagentParams = {
   cleanup?: "delete" | "keep";
   sandbox?: SpawnSubagentSandboxMode;
   expectsCompletionMessage?: boolean;
+  tools?: string[];
+  skills?: string[];
 };
 
 export type SpawnSubagentContext = {
