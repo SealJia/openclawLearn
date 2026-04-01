@@ -15,6 +15,7 @@ export type AuthChoice =
   | "openrouter-api-key"
   | "kilocode-api-key"
   | "litellm-api-key"
+  | "xai-api-key"
   | "ai-gateway-api-key"
   | "cloudflare-ai-gateway-api-key"
   | "moonshot-api-key"
@@ -44,11 +45,14 @@ export type AuthChoice =
   | "github-copilot"
   | "copilot-proxy"
   | "qwen-portal"
-  | "xai-api-key"
   | "mistral-api-key"
   | "volcengine-api-key"
   | "byteplus-api-key"
   | "qianfan-api-key"
+  | "siliconflow-global-api-key"
+  | "siliconflow-cn-api-key"
+  | "deepseek-web"
+  | "qwen-web"
   | "custom-api-key"
   | "skip";
 export type AuthChoiceGroupId =
@@ -75,9 +79,13 @@ export type AuthChoiceGroupId =
   | "together"
   | "huggingface"
   | "qianfan"
+  | "opencode"
   | "xai"
   | "volcengine"
   | "byteplus"
+  | "siliconflow-global"
+  | "siliconflow-cn"
+  | "deepseek-web"
   | "custom";
 export type GatewayAuthChoice = "token" | "password";
 export type ResetScope = "config" | "config+creds+sessions" | "full";
@@ -135,6 +143,10 @@ export type OnboardOptions = {
   volcengineApiKey?: string;
   byteplusApiKey?: string;
   qianfanApiKey?: string;
+  siliconflowGlobalApiKey?: string;
+  siliconflowCnApiKey?: string;
+  deepseekWebCookie?: string;
+  qwenWebCookie?: string;
   customBaseUrl?: string;
   customApiKey?: string;
   customModelId?: string;
